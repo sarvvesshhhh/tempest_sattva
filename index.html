@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEMPEST | Gesture-Controlled 3D Challenge | SATTVA '27</title>
+    <meta name="description" content="TEMPEST - Gesture-Controlled 3D Challenge at SATTVA '27 TECHNICALS.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Three.js (Local with CDN fallback) -->
+    <script src="libs/three.min.js"></script>
+    <script>window.THREE || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>')</script>
+    <script src="libs/GLTFLoader.js"></script>
+    <script>(window.THREE && window.THREE.GLTFLoader) || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"><\/script>')</script>
+
+    <!-- MediaPipe Hand Tracking (Local with CDN fallback) -->
+    <script src="libs/camera_utils.js" crossorigin="anonymous"></script>
+    <script>window.Camera || document.write('<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"><\/script>')</script>
+    <script src="libs/control_utils.js" crossorigin="anonymous"></script>
+    <script src="libs/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="libs/hands.js" crossorigin="anonymous"></script>
+    <script>window.Hands || document.write('<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"><\/script>')</script>
+</head>
+<body>
+    <!-- 3D Game Canvas -->
+    <div id="game-container"></div>
+
+    <!-- Cinematic Vignette & Ambient Atmosphere -->
+    <div id="vignette"></div>
+
+    <!-- UI Layer -->
+    <div id="ui-layer">
+        <!-- Minimal Premium HUD -->
+        <div id="hud" class="hidden">
+            <div class="hud-brand">
+                <span class="hud-brand-title">TEMPEST</span>
+                <span class="hud-brand-sub">SATTVA '27 · TECHNICALS</span>
+            </div>
+
+            <div class="hud-metrics">
+                <div class="hud-card">
+                    <div class="hud-label">SCORE</div>
+                    <div id="score" class="hud-val">0</div>
+                </div>
+                <div class="hud-card best-card">
+                    <div class="hud-label">BEST SCORE</div>
+                    <div id="best-score" class="hud-val">0</div>
+                </div>
+                <div id="coins-container" class="hud-card relic-card">
+                    <span id="coin-icon">🪙</span>
+                    <span id="coins" class="hud-val">0</span>
+                </div>
+            </div>
+
+            <div id="combo-container" class="hidden">
+                <span id="combo-text">COMBO x2</span>
+            </div>
+
+            <div id="speed-indicator">
+                <div id="speed-bar"></div>
+            </div>
+
+            <!-- Bottom Minimal Controls Hint -->
+            <div id="hud-bottom-controls">
+                <span class="hud-ctrl-item">← MOVE →</span>
+                <span class="hud-ctrl-sep">•</span>
+                <span class="hud-ctrl-item">✌ JUMP</span>
+                <span class="hud-ctrl-sep">•</span>
+                <span class="hud-ctrl-item">✊ SLIDE</span>
+            </div>
+        </div>
+
+        <!-- Gesture Feedback Indicator -->
+        <div id="gesture-indicator" class="hidden">
+            <div id="gesture-icon">✋</div>
+            <div id="gesture-text">READY</div>
+        </div>
+
+        <!-- Compact Non-Dominant Webcam Feed -->
+        <div class="webcam-container" id="webcam-wrapper">
+            <div class="webcam-header">
+                <span class="webcam-title">GESTURE TRACKING</span>
+                <span class="webcam-pulse-dot"></span>
+            </div>
+            <select id="camera-select" class="camera-select hidden"></select>
+            <video id="input_video" class="input_video" autoplay playsinline muted></video>
+            <canvas id="output_canvas" class="output_canvas" width="320" height="240"></canvas>
+            <div class="webcam-status" id="webcam-status">Camera Initializing...</div>
+        </div>
+
+        <!-- Warning Flash -->
+        <div id="warning-flash" class="hidden">
+            <span>⚠️ SHOW HAND TO RUN!</span>
+        </div>
+
+        <!-- Near Miss Effect -->
+        <div id="near-miss" class="hidden">NEAR MISS!</div>
+
+        <!-- Cinematic Start Screen -->
+        <div id="start-screen">
+            <div class="start-bg"></div>
+            <div class="start-ember-glow"></div>
+            <div class="start-content">
+                <div class="event-tag">SATTVA '27 · TECHNICALS</div>
+
+                <div class="title-container">
+                    <h1 class="game-title">TEMPEST</h1>
+                    <h2 class="game-subtitle">GESTURE-CONTROLLED 3D CHALLENGE</h2>
+                </div>
+
+                <div class="start-action-row">
+                    <button id="start-btn" class="btn-tempest-run">
+                        <span class="btn-shimmer"></span>
+                        <span class="btn-text">START RUN</span>
+                    </button>
+                    <button id="view-leaderboard-btn" class="btn-stone-subtle">
+                        🏆 LEADERBOARD
+                    </button>
+                </div>
+
+                <div class="controls-pill-row">
+                    <span class="ctrl-pill-word">MOVE</span>
+                    <span class="ctrl-pill-dot">•</span>
+                    <span class="ctrl-pill-word">JUMP</span>
+                    <span class="ctrl-pill-dot">•</span>
+                    <span class="ctrl-pill-word">SLIDE</span>
+                </div>
+
+                <div class="gesture-cheat-cards">
+                    <div class="cheat-card">
+                        <div class="cheat-icon">✋</div>
+                        <div class="cheat-action">HAND LEFT / RIGHT</div>
+                        <div class="cheat-desc">Steer Lane</div>
+                    </div>
+                    <div class="cheat-card">
+                        <div class="cheat-icon">✌️</div>
+                        <div class="cheat-action">PEACE SIGN</div>
+                        <div class="cheat-desc">High Jump</div>
+                    </div>
+                    <div class="cheat-card">
+                        <div class="cheat-icon">✊</div>
+                        <div class="cheat-action">CLOSED FIST</div>
+                        <div class="cheat-desc">Under Slide</div>
+                    </div>
+                </div>
+
+                <div class="keyboard-fallback-badge">
+                    ⌨️ Keyboard Alternative: <span class="kb-key">A</span> / <span class="kb-key">D</span> or <span class="kb-key">⬅️</span> / <span class="kb-key">➡️</span> Steer &bull; <span class="kb-key">W</span> / <span class="kb-key">⬆️</span> / <span class="kb-key">Space</span> Jump &bull; <span class="kb-key">S</span> / <span class="kb-key">⬇️</span> Slide
+                </div>
+
+                <div class="event-footer-sub">SATTVA '27 · TECHNICALS</div>
+            </div>
+        </div>
+
+        <!-- Snappy Countdown Overlay (3, 2, 1, RUN) -->
+        <div id="countdown-overlay" class="hidden">
+            <div id="countdown-number">3</div>
+        </div>
+
+        <!-- Cinematic Intro Overlay (Compat) -->
+        <div id="intro-overlay" class="hidden">
+            <div id="intro-text"></div>
+        </div>
+
+        <!-- Polished Game Over Screen -->
+        <div id="game-over-screen" class="hidden">
+            <div class="gameover-bg"></div>
+            <div class="gameover-content">
+                <div class="event-tag-sm">SATTVA '27 · TECHNICALS</div>
+                <h1 class="gameover-title">RUN COMPLETE</h1>
+                <div class="gameover-divider"></div>
+
+                <div class="results-stats-grid">
+                    <div class="stat-cell highlight-cell">
+                        <div class="stat-caption">FINAL SCORE</div>
+                        <div class="stat-big-val" id="final-score">0</div>
+                    </div>
+                    <div class="stat-cell highlight-cell best-cell">
+                        <div class="stat-caption">BEST SCORE</div>
+                        <div class="stat-big-val" id="final-best-score">0</div>
+                    </div>
+                    <div class="stat-cell">
+                        <div class="stat-caption">DISTANCE</div>
+                        <div class="stat-small-val" id="final-distance">0m</div>
+                    </div>
+                    <div class="stat-cell">
+                        <div class="stat-caption">RELICS</div>
+                        <div class="stat-small-val" id="final-coins">0</div>
+                    </div>
+                    <div class="stat-cell hidden">
+                        <div id="final-best-combo">0</div>
+                    </div>
+                </div>
+
+                <!-- Leaderboard Entry Form -->
+                <div class="name-entry-section" id="name-entry-card">
+                    <div class="entry-prompt">ENTER YOUR NAME FOR LEADERBOARD</div>
+                    <div class="entry-control-group">
+                        <input type="text" id="player-name-input" maxlength="15" placeholder="CHALLENGER NAME" autocomplete="off" />
+                        <button id="save-score-btn" class="btn-save-score">SAVE SCORE</button>
+                    </div>
+                    <div id="save-status-msg" class="save-status-note hidden">Score recorded on TEMPEST Leaderboard!</div>
+                </div>
+
+                <!-- Embedded Top Leaderboard -->
+                <div class="embedded-leaderboard-box">
+                    <div class="embedded-lb-title">
+                        <span>🏆</span> TEMPEST LEADERBOARD <span>🏆</span>
+                    </div>
+                    <div id="results-leaderboard-list" class="leaderboard-items-container"></div>
+                </div>
+
+                <!-- Game Over Action Buttons -->
+                <div class="gameover-button-bar">
+                    <button id="play-again-btn" class="btn-tempest-action">
+                        <span>🔄 PLAY AGAIN</span>
+                    </button>
+                    <button id="next-player-btn" class="btn-stone-action">
+                        <span>👤 NEXT PLAYER</span>
+                    </button>
+                </div>
+
+                <!-- Fallback hidden restart button for backward compatibility -->
+                <button id="restart-btn" class="hidden"></button>
+            </div>
+        </div>
+
+        <!-- Leaderboard Modal (Accessible from Start Screen) -->
+        <div id="leaderboard-modal" class="hidden">
+            <div class="modal-dimmer" id="leaderboard-modal-backdrop" onclick="closeLeaderboardModal()"></div>
+            <div class="modal-stone-card">
+                <div class="modal-top">
+                    <div>
+                        <div class="event-tag-sm">SATTVA '27 · TECHNICALS</div>
+                        <h2 class="modal-heading">TEMPEST LEADERBOARD</h2>
+                    </div>
+                    <button id="close-leaderboard-btn" class="modal-x-btn" onclick="closeLeaderboardModal()" aria-label="Close Leaderboard">&times;</button>
+                </div>
+                <div id="modal-leaderboard-list" class="modal-lb-body"></div>
+                <div class="modal-bottom">
+                    <button id="modal-close-action-btn" class="btn-tempest-action" onclick="closeLeaderboardModal()">CLOSE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fast Loading Screen -->
+    <div id="loading-screen">
+        <div class="loader-content">
+            <div class="event-tag-sm">SATTVA '27 · TECHNICALS</div>
+            <div class="loader-game-name">TEMPEST</div>
+            <div class="loader-spinner-fire"></div>
+            <div class="loader-text">Loading Arena...</div>
+            <div class="loader-bar"><div class="loader-fill"></div></div>
+        </div>
+    </div>
+
+    <script src="audio.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>

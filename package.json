@@ -1,0 +1,26 @@
+{
+  "name": "tempest-3d-challenge",
+  "version": "1.0.0",
+  "description": "TEMPEST - Gesture-Controlled 3D Challenge at SATTVA '27 TECHNICALS",
+  "main": "main.js",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx serve .",
+    "serve": "npx serve .",
+    "build": "echo Static application ready."
+  },
+  "keywords": [
+    "threejs",
+    "mediapipe",
+    "webgl",
+    "tempest",
+    "hand-tracking",
+    "gesture-challenge",
+    "sattva-27"
+  ],
+  "author": "SATTVA '27 Technicals",
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.2.4"
+  }
+}
