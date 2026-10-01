@@ -5,9 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "npx serve .",
-    "dev": "npx serve .",
-    "serve": "npx serve .",
-    "build": "echo Static application ready."
+    "dev": "npx serve ."
   },
   "keywords": [
     "threejs",
